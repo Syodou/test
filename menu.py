@@ -14,7 +14,7 @@ def game_screen(screen):
     screen.blit(text, (640, 360))
     pygame.display.flip()
 
-# Inicializar pygame 
+# Inicializar pygame
 pygame.init()
 
 # Configurar la pantalla y el reloj
