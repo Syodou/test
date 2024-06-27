@@ -8,7 +8,6 @@ def menu_screen(screen, background):
     pygame.display.flip()
 
 def game_screen(screen):
-    screen.fill((0, 0, 255))  # Llenar la pantalla de azul para distinguir del menú
     font = pygame.font.Font(None, 74)
     text = font.render("Game", True, (255, 255, 255))
     screen.blit(text, (640, 360))
