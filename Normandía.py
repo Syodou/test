@@ -21,6 +21,8 @@ defeat_background = pygame.image.load('assets/background.jpg')
 # Cargar música desde la carpeta "assets"
 pygame.mixer.music.load('assets/Caribe.mp3')
 pygame.mixer.music.play(-1)  # Reproducir en bucle
+pause_music = 'assets/pause.mp3'
+game_music = 'assets/Final Destination.mp3'
 
 # Colores
 white = (255, 255, 255)
@@ -36,8 +38,8 @@ font = pygame.font.Font(None, 74)
 grid_size = 15
 cell_size = 30
 margin = 20
-user_grid_origin = (margin, screen_height // 2 - (grid_size * cell_size) // 2)
-cpu_grid_origin = (screen_width - margin - grid_size * cell_size, screen_height // 2 - (grid_size * cell_size) // 2)
+cpu_grid_origin = (margin, screen_height // 2 - (grid_size * cell_size) // 2)
+user_grid_origin = (screen_width - margin - grid_size * cell_size, screen_height // 2 - (grid_size * cell_size) // 2)
 
 # Función para dibujar el botón
 def draw_button(screen, text, x, y, width, height, color):
@@ -76,7 +78,7 @@ def show_instructions():
 # Función para colocar barcos
 def place_ships():
     ships = []
-    ship_sizes = [(2, 2), (2, 2), (3, 3), (3, 3)]
+    ship_sizes = [(2, 1), (2, 1), (3, 1), (3, 1)]
     
     for size in ship_sizes:
         placed = False
@@ -96,7 +98,7 @@ def all_ships_sunk(bombs, ships):
 
 # Función para mostrar la pantalla de victoria o derrota
 def show_end_screen(win):
-    pygame.mixer.music.load('assets/Final Destination.mp3')
+    pygame.mixer.music.load('assets/Final Destinarion.mp3')
     pygame.mixer.music.play(-1)  # Reproducir en bucle
 
     end_running = True
@@ -120,7 +122,7 @@ def show_end_screen(win):
 
 # Función para cargar el contenido del juego principal
 def run_game():
-    pygame.mixer.music.load('assets/Final Destination.mp3')
+    pygame.mixer.music.load(game_music)
     pygame.mixer.music.play(-1)  # Reproducir en bucle
 
     # Variables del juego Battleship
@@ -133,6 +135,7 @@ def run_game():
     clock = pygame.time.Clock()
     running = True
     paused = False
+    game_music_pos = 0
 
     while running:
         for event in pygame.event.get():
@@ -142,6 +145,13 @@ def run_game():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     paused = not paused
+                    if paused:
+                        game_music_pos = pygame.mixer.music.get_pos() / 1000.0
+                        pygame.mixer.music.load(pause_music)
+                        pygame.mixer.music.play(-1)
+                    else:
+                        pygame.mixer.music.load(game_music)
+                        pygame.mixer.music.play(-1, start=game_music_pos)
                 if not paused:
                     if event.key == pygame.K_w and player_y > 0:
                         player_y -= 1
@@ -168,31 +178,37 @@ def run_game():
 
             elif event.type == pygame.MOUSEBUTTONDOWN and paused:
                 mouse_x, mouse_y = event.pos
-                # Verifica si el clic está dentro del botón de regresar al menú principal
+                # Verifica si el clic está dentro de los botones del menú de pausa
                 if (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 - 50) <= mouse_y <= (screen_height // 2 + 50):
+                    paused = False
+                    pygame.mixer.music.load(game_music)
+                    pygame.mixer.music.play(-1, start=game_music_pos)
+                elif (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 + 60) <= mouse_y <= (screen_height // 2 + 110):
                     return
 
         screen.blit(game_background, (0, 0))
         if not paused:
-            # Dibujar la cuadrícula del jugador
+            # Dibujar la cuadrícula de la CPU
             for row in range(grid_size):
                 for col in range(grid_size):
                     color = white
                     if (col, row) in player_bombs:
                         color = red if any((col, row) in ship for ship in cpu_ships) else blue
-                    rect = pygame.Rect(user_grid_origin[0] + col * cell_size, user_grid_origin[1] + row * cell_size, cell_size, cell_size)
+                    rect = pygame.Rect(cpu_grid_origin[0] + col * cell_size, cpu_grid_origin[1] + row * cell_size, cell_size, cell_size)
                     pygame.draw.rect(screen, color, rect, 2)
-            
-            # Dibujar la cuadrícula de la CPU
+
+            # Dibujar la cuadrícula del jugador
             for row in range(grid_size):
                 for col in range(grid_size):
                     color = white
                     if (col, row) in cpu_bombs:
                         color = red if any((col, row) in ship for ship in player_ships) else blue
-                    rect = pygame.Rect(cpu_grid_origin[0] + col * cell_size, cpu_grid_origin[1] + row * cell_size, cell_size, cell_size)
+                    elif any((col, row) in ship for ship in player_ships):
+                        color = green
+                    rect = pygame.Rect(user_grid_origin[0] + col * cell_size, user_grid_origin[1] + row * cell_size, cell_size, cell_size)
                     pygame.draw.rect(screen, color, rect, 2)
 
-            # Dibujar el jugador
+            # Dibujar la selección del jugador
             player_rect = pygame.Rect(user_grid_origin[0] + player_x * cell_size, user_grid_origin[1] + player_y * cell_size, cell_size, cell_size)
             pygame.draw.rect(screen, green, player_rect)
 
@@ -202,8 +218,14 @@ def run_game():
             pygame.display.flip()
             clock.tick(60)
         else:
-            screen.fill(black)
-            draw_button(screen, "Regresar al Menu", screen_width // 2 - 100, screen_height // 2 - 50, 200, 100, blue)
+            # Crear una superficie semi-transparente
+            overlay = pygame.Surface((screen_width, screen_height))
+            overlay.set_alpha(128)  # 50% de transparencia
+            overlay.fill(black)
+            screen.blit(overlay, (0, 0))
+
+            draw_button(screen, "Continuar", screen_width // 2 - 100, screen_height // 2 - 50, 200, 50, blue)
+            draw_button(screen, "Regresar al Menu", screen_width // 2 - 100, screen_height // 2 + 60, 200, 50, blue)
             pygame.display.flip()
 
 # Bucle principal
@@ -241,3 +263,4 @@ while running:
 # Salir de Pygame
 pygame.quit()
 sys.exit()
+
