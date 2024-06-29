@@ -217,7 +217,6 @@ while running:
             # Verifica si el clic está dentro de los botones
             if (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 - 50) <= mouse_y <= (screen_height // 2 + 50):
                 # Cargar el contenido del juego principal
-                juego()
                 run_game()
                 pygame.mixer.music.load('assets/Caribe.mp3')
                 pygame.mixer.music.play(-1)  # Reproducir en bucle
