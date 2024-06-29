@@ -6,190 +6,235 @@ import random
 pygame.init()
 
 # Configuración de la pantalla
-ancho_ventana = 1280
-alto_ventana = 720
-pantalla = pygame.display.set_mode((ancho_ventana, alto_ventana))
+screen_width = 1280
+screen_height = 720
+screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Normandía")
 
+# Cargar fondos e imágenes desde la carpeta "assets"
+menu_background = pygame.image.load('assets/background.jpg')
+game_background = pygame.image.load('assets/background.jpg')
+instructions_background = pygame.image.load('assets/background.jpg')
+victory_background = pygame.image.load('assets/background.jpg')
+defeat_background = pygame.image.load('assets/background.jpg')
+
+# Cargar música desde la carpeta "assets"
+pygame.mixer.music.load('assets/Caribe.mp3')
+pygame.mixer.music.play(-1)  # Reproducir en bucle
+
 # Colores
-blanco = (255, 255, 255)
-negro = (0, 0, 0)
-azul = (0, 0, 255)
-rojo = (255, 0, 0)
-verde = (0, 255, 0)
-
-# Iniciar el mixer + añadir los diferentes mp3s a usar
-pygame.mixer.init()
-cancion_juego = "assets/Final Destination.mp3"
-cancion_pausa = "assets/pause.mp3"
-cancion_menu = "assets/Caribe.mp3"
-cancion_derrota = "assets/loser.mp3"
-cancion_victoria = "assets/victoria.mp3"
-
-pygame.mixer.music.load(cancion_juego)
+white = (255, 255, 255)
+black = (0, 0, 0)
+blue = (0, 0, 255)
+red = (255, 0, 0)
+green = (0, 255, 0)
 
 # Fuente
 font = pygame.font.Font(None, 74)
 
 # Configuración del juego Battleship
-n_filas = 15
-tam_celdas = 30
-margen = 20
-tablero_usuario = (margen, alto_ventana // 2 - (n_filas * tam_celdas) // 2)
-tablero_cpu = (ancho_ventana - margen - n_filas * tam_celdas, alto_ventana // 2 - (n_filas * tam_celdas) // 2)
+grid_size = 15
+cell_size = 30
+margin = 20
+user_grid_origin = (margin, screen_height // 2 - (grid_size * cell_size) // 2)
+cpu_grid_origin = (screen_width - margin - grid_size * cell_size, screen_height // 2 - (grid_size * cell_size) // 2)
 
 # Función para dibujar el botón
-def dibujar_botones(pantalla, text, x, y, width, height, color):
-    pygame.draw.rect(pantalla, color, [x, y, width, height])
-    forma_texto = font.render(text, True, blanco)
-    pantalla.blit(forma_texto, (x + (width - forma_texto.get_width()) // 2, y + (height - forma_texto.get_height()) // 2))
+def draw_button(screen, text, x, y, width, height, color):
+    pygame.draw.rect(screen, color, [x, y, width, height])
+    text_surface = font.render(text, True, white)
+    screen.blit(text_surface, (x + (width - text_surface.get_width()) // 2, y + (height - text_surface.get_height()) // 2))
 
 # Función para mostrar instrucciones
-def mostrar_instrucciones():
-    instrucciones_on = True
-    while instrucciones_on:
+def show_instructions():
+    instructions_running = True
+    while instructions_running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                instrucciones_on = False
+                instructions_running = False
 
-        pantalla.fill(negro)
-        forma_texto = font.render("Instrucciones del Juego", True, blanco)
-        pantalla.blit(forma_texto, (ancho_ventana // 2 - forma_texto.get_width() // 2, alto_ventana // 2 - 100))
+        screen.blit(instructions_background, (0, 0))
+        text_surface = font.render("Instrucciones del Juego", True, white)
+        screen.blit(text_surface, (screen_width // 2 - text_surface.get_width() // 2, screen_height // 2 - 100))
 
         # Añade más texto de instrucciones aquí
-        ins_texto = [
+        instructions_text = [
             "Muevete con W, A, S, D",
             "Presiona ENTER para lanzar una bomba",
             "Presiona ESC para pausar el juego"
         ]
 
-        for i, line in enumerate(ins_texto):
-            forma_linea = font.render(line, True, blanco)
-            pantalla.blit(forma_linea, (ancho_ventana // 2 - forma_linea.get_width() // 2, alto_ventana // 2 + i * 50))
+        for i, line in enumerate(instructions_text):
+            line_surface = font.render(line, True, white)
+            screen.blit(line_surface, (screen_width // 2 - line_surface.get_width() // 2, screen_height // 2 + i * 50))
 
         pygame.display.flip()
 
 # Función para colocar barcos
-def pos_barcos():
-    barcos = []
-    tam_barcos = [(2, 2), (2, 2), (3, 3), (3, 3)]
+def place_ships():
+    ships = []
+    ship_sizes = [(2, 2), (2, 2), (3, 3), (3, 3)]
     
-    for tam in tam_barcos:
-        posicionado = False
-        while not posicionado:
-            x = random.randint(0, n_filas - tam[0])
-            y = random.randint(0, n_filas - tam[1])
-            gen_barco = [(x + dx, y + dy) for dx in range(tam[0]) for dy in range(tam[1])]
-            if not any(celda in barcos for barcos in barcos for celda in gen_barco):
-                barcos.append(gen_barco)
-                posicionado = True
+    for size in ship_sizes:
+        placed = False
+        while not placed:
+            x = random.randint(0, grid_size - size[0])
+            y = random.randint(0, grid_size - size[1])
+            new_ship = [(x + dx, y + dy) for dx in range(size[0]) for dy in range(size[1])]
+            if not any(cell in ship for ship in ships for cell in new_ship):
+                ships.append(new_ship)
+                placed = True
 
-    return barcos
+    return ships
+
+# Función para verificar si todos los barcos han sido eliminados
+def all_ships_sunk(bombs, ships):
+    return all(cell in bombs for ship in ships for cell in ship)
+
+# Función para mostrar la pantalla de victoria o derrota
+def show_end_screen(win):
+    pygame.mixer.music.load('assets/Final Destination.mp3')
+    pygame.mixer.music.play(-1)  # Reproducir en bucle
+
+    end_running = True
+    while end_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = event.pos
+                if (screen_width - 200) <= mouse_x <= (screen_width - 50) and (screen_height - 100) <= mouse_y <= (screen_height - 50):
+                    return
+
+        screen.blit(victory_background if win else defeat_background, (0, 0))
+        text_surface = font.render("Victoria" if win else "Derrota", True, white)
+        screen.blit(text_surface, (screen_width // 2 - text_surface.get_width() // 2, screen_height // 2 - 100))
+
+        draw_button(screen, "Regresar al Menu", screen_width - 200, screen_height - 100, 150, 50, blue)
+        
+        pygame.display.flip()
 
 # Función para cargar el contenido del juego principal
-def juego():
+def run_game():
+    pygame.mixer.music.load('assets/Final Destination.mp3')
+    pygame.mixer.music.play(-1)  # Reproducir en bucle
+
     # Variables del juego Battleship
     player_x, player_y = 0, 0
-    bombas_pj = []
-    bombas_cpu = []
-    barcos_jugador = pos_barcos()
-    barcos_cpu = pos_barcos()
+    player_bombs = []
+    cpu_bombs = []
+    player_ships = place_ships()
+    cpu_ships = place_ships()
 
-    reloj = pygame.time.Clock()
-    actividad_juego = True
-    pausa = False
+    clock = pygame.time.Clock()
+    running = True
+    paused = False
 
-    while actividad_juego:
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    pausa = not pausa
-                if not pausa:
+                    paused = not paused
+                if not paused:
                     if event.key == pygame.K_w and player_y > 0:
                         player_y -= 1
-                    if event.key == pygame.K_s and player_y < n_filas - 1:
+                    if event.key == pygame.K_s and player_y < grid_size - 1:
                         player_y += 1
                     if event.key == pygame.K_a and player_x > 0:
                         player_x -= 1
-                    if event.key == pygame.K_d and player_x < n_filas - 1:
+                    if event.key == pygame.K_d and player_x < grid_size - 1:
                         player_x += 1
                     if event.key == pygame.K_RETURN:
-                        bombas_pj.append((player_x, player_y))
-                        cpu_x, cpu_y = random.randint(0, n_filas - 1), random.randint(0, n_filas - 1)
-                        bombas_cpu.append((cpu_x, cpu_y))
+                        if (player_x, player_y) not in player_bombs:
+                            player_bombs.append((player_x, player_y))
+                            if all_ships_sunk(player_bombs, cpu_ships):
+                                show_end_screen(True)
+                                return
+                            while True:
+                                cpu_x, cpu_y = random.randint(0, grid_size - 1), random.randint(0, grid_size - 1)
+                                if (cpu_x, cpu_y) not in cpu_bombs:
+                                    cpu_bombs.append((cpu_x, cpu_y))
+                                    break
+                            if all_ships_sunk(cpu_bombs, player_ships):
+                                show_end_screen(False)
+                                return
 
-            elif event.type == pygame.MOUSEBUTTONDOWN and pausa:
+            elif event.type == pygame.MOUSEBUTTONDOWN and paused:
                 mouse_x, mouse_y = event.pos
                 # Verifica si el clic está dentro del botón de regresar al menú principal
-                if (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (alto_ventana // 2 - 50) <= mouse_y <= (alto_ventana // 2 + 50):
+                if (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 - 50) <= mouse_y <= (screen_height // 2 + 50):
                     return
 
-        pantalla.fill(negro)
-        if not pausa:
+        screen.blit(game_background, (0, 0))
+        if not paused:
             # Dibujar la cuadrícula del jugador
-            for fila in range(n_filas):
-                for col in range(n_filas):
-                    color = blanco
-                    if (col, fila) in bombas_pj:
-                        color = rojo if any((col, fila) in ship for ship in barcos_cpu) else azul
-                    rect = pygame.Rect(tablero_usuario[0] + col * tam_celdas, tablero_usuario[1] + fila * tam_celdas, tam_celdas, tam_celdas)
-                    pygame.draw.rect(pantalla, color, rect, 2)
+            for row in range(grid_size):
+                for col in range(grid_size):
+                    color = white
+                    if (col, row) in player_bombs:
+                        color = red if any((col, row) in ship for ship in cpu_ships) else blue
+                    rect = pygame.Rect(user_grid_origin[0] + col * cell_size, user_grid_origin[1] + row * cell_size, cell_size, cell_size)
+                    pygame.draw.rect(screen, color, rect, 2)
             
             # Dibujar la cuadrícula de la CPU
-            for fila in range(n_filas):
-                for col in range(n_filas):
-                    color = blanco
-                    if (col, fila) in bombas_cpu:
-                        color = rojo if any((col, fila) in ship for ship in barcos_jugador) else azul
-                    rect = pygame.Rect(tablero_cpu[0] + col * tam_celdas, tablero_cpu[1] + fila * tam_celdas, tam_celdas, tam_celdas)
-                    pygame.draw.rect(pantalla, color, rect, 2)
+            for row in range(grid_size):
+                for col in range(grid_size):
+                    color = white
+                    if (col, row) in cpu_bombs:
+                        color = red if any((col, row) in ship for ship in player_ships) else blue
+                    rect = pygame.Rect(cpu_grid_origin[0] + col * cell_size, cpu_grid_origin[1] + row * cell_size, cell_size, cell_size)
+                    pygame.draw.rect(screen, color, rect, 2)
 
             # Dibujar el jugador
-            player_rect = pygame.Rect(tablero_usuario[0] + player_x * tam_celdas, tablero_usuario[1] + player_y * tam_celdas, tam_celdas, tam_celdas)
-            pygame.draw.rect(pantalla, verde, player_rect)
+            player_rect = pygame.Rect(user_grid_origin[0] + player_x * cell_size, user_grid_origin[1] + player_y * cell_size, cell_size, cell_size)
+            pygame.draw.rect(screen, green, player_rect)
 
             # Dibujar botón de pausa
-            dibujar_botones(pantalla, "Pausa", 20, 20, 150, 50, azul)
+            draw_button(screen, "Pausa", 20, 20, 150, 50, blue)
 
             pygame.display.flip()
-            reloj.tick(60)
+            clock.tick(60)
         else:
-            pantalla.fill(negro)
-            dibujar_botones(pantalla, "Regresar al Menu", ancho_ventana // 2 - 100, alto_ventana // 2 - 50, 200, 100, azul)
+            screen.fill(black)
+            draw_button(screen, "Regresar al Menu", screen_width // 2 - 100, screen_height // 2 - 50, 200, 100, blue)
             pygame.display.flip()
 
 # Bucle principal
-act_ventana = True
-while act_ventana:
+running = True
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            act_ventana = False
+            running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = event.pos
             # Verifica si el clic está dentro de los botones
-            if (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (alto_ventana // 2 - 50) <= mouse_y <= (alto_ventana // 2 + 50):
+            if (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 - 50) <= mouse_y <= (screen_height // 2 + 50):
                 # Cargar el contenido del juego principal
                 juego()
-            elif (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (alto_ventana // 2 + 60) <= mouse_y <= (alto_ventana // 2 + 160):
+                run_game()
+                pygame.mixer.music.load('assets/Caribe.mp3')
+                pygame.mixer.music.play(-1)  # Reproducir en bucle
+            elif (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 + 60) <= mouse_y <= (screen_height // 2 + 160):
                 # Mostrar las instrucciones
-                mostrar_instrucciones()
-            elif (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (alto_ventana // 2 + 170) <= mouse_y <= (alto_ventana // 2 + 270):
+                show_instructions()
+            elif (screen_width // 2 - 100) <= mouse_x <= (screen_width // 2 + 100) and (screen_height // 2 + 170) <= mouse_y <= (screen_height // 2 + 270):
                 # Cerrar el juego
-                act_ventana = False
+                running = False
 
     # Rellenar la pantalla de blanco
-    pantalla.fill(blanco)
+    screen.blit(menu_background, (0, 0))
     
     # Dibujar los botones
-    dibujar_botones(pantalla, "Jugar", ancho_ventana // 2 - 100, alto_ventana // 2 - 50, 200, 100, azul)
-    dibujar_botones(pantalla, "Instrucciones", ancho_ventana // 2 - 100, alto_ventana // 2 + 60, 200, 100, azul)
-    dibujar_botones(pantalla, "Salir", ancho_ventana // 2 - 100, alto_ventana // 2 + 170, 200, 100, azul)
+    draw_button(screen, "Jugar", screen_width // 2 - 100, screen_height // 2 - 50, 200, 100, blue)
+    draw_button(screen, "Instrucciones", screen_width // 2 - 100, screen_height // 2 + 60, 200, 100, blue)
+    draw_button(screen, "Salir", screen_width // 2 - 100, screen_height // 2 + 170, 200, 100, blue)
     
     # Actualizar la pantalla
     pygame.display.flip()
