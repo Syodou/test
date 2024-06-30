@@ -78,7 +78,7 @@ def show_instructions():
 # Función para colocar barcos
 def place_ships():
     ships = []
-    ship_sizes = [(2, 1), (2, 1), (3, 1), (3, 1)]
+    ship_sizes = [(4, 1), (4, 1), (4, 1), (3, 1), (3, 1), (3, 1), (3, 1), (3, 1), (2, 1), (2, 1), (2, 1), (2, 1)]
     
     for size in ship_sizes:
         placed = False
