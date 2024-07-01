@@ -34,7 +34,7 @@ rojo = (255, 0, 0)
 verde = (0, 255, 0)
 
 # Fuente
-fuente = pygame.font.Font(None, 74)
+fuente = pygame.font.Font(None, 45)
 
 # Configuración del juego Battleship
 tamaño_tablero = 15
@@ -49,7 +49,53 @@ def Dibujar_boton(ventana, texto, x, y, ancho, largo, color):
     superficie_texto = fuente.render(texto, True, blanco)
     ventana.blit(superficie_texto, (x + (ancho - superficie_texto.get_width()) // 2, y + (largo - superficie_texto.get_height()) // 2))
 
-# Función para mostrar instrucciones
+# Función para mostrar texto en la pantalla
+def mostrar_texto(texto, fuente, color, superficie, x, y):
+    texto_objeto = fuente.render(texto, True, color)
+    texto_rect = texto_objeto.get_rect()
+    texto_rect.center = (x, y)
+    superficie.blit(texto_objeto, texto_rect)
+
+# Función para la pantalla de menú principal
+def menu_principal():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    x, y = event.pos
+                    if boton_instrucciones.collidepoint(x, y):
+                        instrucciones()
+                    if boton_opciones.collidepoint(x, y):
+                        opciones()
+                    if boton_salir.collidepoint(x, y):
+                        pygame.quit()
+                        sys.exit()
+
+        ventana.fill(blanco)
+        ventana.blit(menu_BG, (0, 0))
+        
+        # Botones
+        boton_jugar = pygame.Rect(540, 250, 200, 50)
+        boton_instrucciones = pygame.Rect(540, 350, 200, 50)
+        boton_opciones = pygame.Rect(540, 450, 200, 50)
+        boton_salir = pygame.Rect(540, 550, 200, 50)
+        
+        pygame.draw.rect(ventana, negro, boton_jugar)
+        pygame.draw.rect(ventana, negro, boton_instrucciones)
+        pygame.draw.rect(ventana, negro, boton_opciones)
+        pygame.draw.rect(ventana, negro, boton_salir)
+        
+        mostrar_texto("Jugar", fuente, blanco, ventana, 640, 275)
+        mostrar_texto("Instrucciones", fuente, blanco, ventana, 640, 375)
+        mostrar_texto("Opciones", fuente, blanco, ventana, 640, 475)
+        mostrar_texto("Salir", fuente, blanco, ventana, 640, 575)
+
+        pygame.display.update()
+
+# Función para la pantalla de instrucciones
 def instrucciones():
     instrucciones_on = True #Si es que la ventana de instrucciones está activa
     while instrucciones_on:
@@ -74,8 +120,66 @@ def instrucciones():
         for i, line in enumerate(texto_instrucciones):
             line_surface = fuente.render(line, True, blanco)
             ventana.blit(line_surface, (ancho_ventana // 2 - line_surface.get_width() // 2, largo_ventana // 2 + i * 50))
+            
+        pygame.display.update()
 
-        pygame.display.flip()
+# Función para la pantalla de opciones
+def opciones():
+    volumen_musica = 0.5  # Volumen predeterminado para música
+    volumen_efectos = 0.5  # Volumen predeterminado para efectos de sonido
+
+    boton_mas_musica = pygame.Rect(740, 360, 50, 50)
+    boton_menos_musica = pygame.Rect(490, 360, 50, 50)
+    boton_mas_efectos = pygame.Rect(740, 460, 50, 50)
+    boton_menos_efectos = pygame.Rect(490, 460, 50, 50)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    x, y = event.pos
+                    if boton_mas_musica.collidepoint(x, y):
+                        if volumen_musica < 1.0:
+                            volumen_musica += 0.1
+                            pygame.mixer.music.set_volume(volumen_musica)
+                    if boton_menos_musica.collidepoint(x, y):
+                        if volumen_musica > 0.0:
+                            volumen_musica -= 0.1
+                            pygame.mixer.music.set_volume(volumen_musica)
+                    if boton_mas_efectos.collidepoint(x, y):
+                        if volumen_efectos < 1.0:
+                            volumen_efectos += 0.1
+                            # Ajustar el volumen de los efectos de sonido aquí
+                    if boton_menos_efectos.collidepoint(x, y):
+                        if volumen_efectos > 0.0:
+                            volumen_efectos -= 0.1
+                            # Ajustar el volumen de los efectos de sonido aquí
+
+        ventana.fill(blanco)
+        ventana.blit(menu_BG, (0, 0))
+
+        # Botones para volumen de música
+        pygame.draw.rect(ventana, negro, boton_mas_musica)
+        pygame.draw.rect(ventana, negro, boton_menos_musica)
+        mostrar_texto("+", fuente, blanco, ventana, 765, 385)
+        mostrar_texto("-", fuente, blanco, ventana, 515, 385)
+        mostrar_texto(f"Volumen Música: {volumen_musica:.1f}", fuente, negro, ventana, 640, 300)
+
+        # Botones para volumen de efectos de sonido
+        pygame.draw.rect(ventana, negro, boton_mas_efectos)
+        pygame.draw.rect(ventana, negro, boton_menos_efectos)
+        mostrar_texto("+", fuente, blanco, ventana, 765, 485)
+        mostrar_texto("-", fuente, blanco, ventana, 515, 485)
+        mostrar_texto(f"Volumen Efectos: {volumen_efectos:.1f}", fuente, negro, ventana, 640, 420)
+
+        pygame.display.update()
+
 
 # Función para colocar barcos
 def colocar_barcos():
@@ -244,15 +348,15 @@ while ejecute:
         elif evento.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = evento.pos
             # Verifica si el clic está dentro de los botones
-            if (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (largo_ventana // 2 - 50) <= mouse_y <= (largo_ventana // 2 + 50):
+            if (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (largo_ventana // 3.2 - 25) <= mouse_y <= (largo_ventana // 2 + 50):
                 # Cargar el contenido del juego principal
                 iniciar_juego()
-                pygame.mixer.music.load('assets/Caribe.mp3')
-                pygame.mixer.music.set_volume(0.5)
-                pygame.mixer.music.play(-1)  # Reproducir en bucle
             elif (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (largo_ventana // 2 + 60) <= mouse_y <= (largo_ventana // 2 + 160):
                 # Mostrar las instrucciones
                 instrucciones()
+            elif (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (largo_ventana // 2 - 50) <= mouse_y <= (largo_ventana // 2 + 50):
+                # Mostrar Opciones
+                opciones()
             elif (ancho_ventana // 2 - 100) <= mouse_x <= (ancho_ventana // 2 + 100) and (largo_ventana // 2 + 170) <= mouse_y <= (largo_ventana // 2 + 270):
                 # Cerrar el juego
                 ejecute = False
@@ -261,7 +365,9 @@ while ejecute:
     ventana.blit(menu_BG, (0, 0))
     
     # Dibujar los botones
-    Dibujar_boton(ventana, "Jugar", ancho_ventana // 2 - 100, largo_ventana // 2 - 50, 200, 100, azul)
+    
+    Dibujar_boton(ventana, "Jugar", ancho_ventana // 2 - 100, largo_ventana // 3.2 - 25, 200, 100, azul)
+    Dibujar_boton(ventana, "Opciones", ancho_ventana // 2 - 100, largo_ventana // 2 - 50, 200, 100, azul)
     Dibujar_boton(ventana, "Instrucciones", ancho_ventana // 2 - 100, largo_ventana // 2 + 60, 200, 100, azul)
     Dibujar_boton(ventana, "Salir", ancho_ventana // 2 - 100, largo_ventana // 2 + 170, 200, 100, azul)
     
